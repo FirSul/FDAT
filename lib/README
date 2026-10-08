@@ -1,46 +1,47 @@
+# FDAT - Flight Data Acquisition and Telemetry
 
-This directory is intended for project specific (private) libraries.
-PlatformIO will compile them to static libraries and link into the executable file.
+A personal project to build a small flight data acquisition system using an ESP32-S3.
 
-The source code of each library should be placed in a separate directory
-("lib/your_library_name/[Code]").
+The idea is to collect data from a few sensors, store it on an SD card, and eventually transmit it to a computer for live monitoring. I'm mainly doing this to get more experience with embedded programming, electronics, and working with sensors.
 
-For example, see the structure of the following example libraries `Foo` and `Bar`:
+## Hardware
 
-|--lib
-|  |
-|  |--Bar
-|  |  |--docs
-|  |  |--examples
-|  |  |--src
-|  |     |- Bar.c
-|  |     |- Bar.h
-|  |  |- library.json (optional. for custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
-|  |
-|  |--Foo
-|  |  |- Foo.c
-|  |  |- Foo.h
-|  |
-|  |- README --> THIS FILE
-|
-|- platformio.ini
-|--src
-   |- main.c
+- **ESP32-S3 SuperMini** - Main microcontroller
+- **BMP388** - Barometric pressure and temperature
+- **LSM6DSOX** - Accelerometer and gyroscope
+- **INA219** - Voltage and current monitoring
+- **MicroSD module** - Data logging
 
-Example contents of `src/main.c` using Foo and Bar:
-```
-#include <Foo.h>
-#include <Bar.h>
+## Software
 
-int main (void)
-{
-  ...
-}
+- C++ (Arduino framework)
+- PlatformIO / VS Code
+- Python for data analysis and visualization
 
-```
+## Goals
 
-The PlatformIO Library Dependency Finder will find automatically dependent
-libraries by scanning project source files.
+The first goal is to get each sensor working individually and understand how it communicates with the ESP32.
 
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+Once that's done, I'll combine everything into a single system that can sample data at set frequencies, timestamp measurements, and save them to an SD card.
+
+After that, I'd like to add live telemetry and a simple Python interface to visualize the data.
+
+## Progress
+
+- [x] Set up ESP32-S3 with PlatformIO
+- [x] Basic GPIO and onboard LED testing
+- [ ] Read pressure and temperature from BMP388
+- [ ] Read acceleration and angular velocity from LSM6DSOX
+- [ ] Integrate INA219
+- [ ] Implement timestamps and consistent sampling
+- [ ] Log sensor data to microSD
+- [ ] Send data to PC
+- [ ] Visualize data using Python
+- [ ] Design and print an enclosure
+- [ ] Test the complete system
+
+## Notes
+
+I'm building this incrementally rather than trying to connect and program everything at once. Each component will be tested separately before integration.
+
+I'll update this README as the project progresses.
