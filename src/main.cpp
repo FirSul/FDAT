@@ -1,30 +1,25 @@
 #include <Arduino.h>
-
+#include "bmp.h"
 // put function declarations here:
 
-const int ledPin = 48; // Pin number for the LED
+
 
 void setup() {
-  // put your setup code here, to run once:
+  Serial.begin(115200); // Start serial communication at 115200 baud
+  initializeBMP();
 
-  pinMode(ledPin, OUTPUT); // Set the LED pin as an output
+  if (isBMPConnected()) {
+    Serial.println("BMP is connected");
+  } else {
+    Serial.println("BMP is not connected");
+  }
+
 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  neopixelWrite(ledPin, 255, 0, 0); // Red
+  Serial.println(readPressure());
+  Serial.println(readTemperature());
   delay(1000);
-
-  neopixelWrite(ledPin, 0, 255, 0); // Green
-  delay(1000);
-
-  neopixelWrite(ledPin, 0, 0, 255); // Blue
-  delay(1000);
-
-  neopixelWrite(ledPin, 0, 0, 0);   // Off
-  delay(1000);
+  
 }
-
-// put function definitions here:
-
