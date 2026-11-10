@@ -5,7 +5,7 @@
 
 
 void setup() {
-  Serial.begin(115200); // Start serial communication at 115200 baud
+  Serial.begin(115200); 
   initializeBMP();
 
   if (isBMPConnected()) {
@@ -18,8 +18,16 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(readPressure());
-  Serial.println(readTemperature());
-  delay(1000);
-  
+
+    BMPData data = readBMPData();
+
+    Serial.print("Pressure: ");
+    Serial.print(data.pressure, 2);
+    Serial.println(" Pa");
+
+    Serial.print("Temperature: ");
+    Serial.print(data.temperature, 2);
+    Serial.println(" C");
+
+    delay(1000);
 }
