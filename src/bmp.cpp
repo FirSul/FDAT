@@ -1,4 +1,3 @@
-
 #include <Wire.h>
 #include <Arduino.h>
 #include "bmp.h"
@@ -28,14 +27,45 @@ static bool calibrationLoaded = false;
 // forward dec
 void readCalibration();
 
+//Register write
+static bool writeRegister(uint8_t reg, uint8_t value) {
+
+    Wire.beginTransmission(BMP_ADDRESS);
+
+    Wire.write(reg);
+    Wire.write(value);
+
+    return Wire.endTransmission() == 0;
+}
+
+
 // bmp init
 void initializeBMP() {
     Wire.begin(8, 9); // SDA = 8, SCL = 9
 
-    Wire.beginTransmission(BMP_ADDRESS);
-    Wire.write(0x1B); // PWR_CTRL register
-    Wire.write(0x33); // Enable pressure, temperature, normal mode
-    Wire.endTransmission();
+    // Sleep before config
+    if (!writeRegister(0x1B, 0x00)) {
+        Serial.println("BMP388 sleep configuration failed");
+        return;
+    }
+
+    // Pressure oversampling x8, temperature x1
+    if (!writeRegister(0x1C, 0x03)) {
+        Serial.println("BMP388 oversampling configuration failed");
+        return;
+    }
+
+    // Output data rate at 25 Hz
+    if (!writeRegister(0x1D, 0x03)) {
+        Serial.println("BMP388 ODR configuration failed");
+        return;
+    }
+
+    // Enable pressure, temperature and normal mode
+    if (!writeRegister(0x1B, 0x33)) {
+        Serial.println("BMP388 normal mode configuration failed");
+        return;
+    }
 
     readCalibration();
 }
@@ -46,33 +76,40 @@ bool isBMPConnected() {
 }
 
 // Reading register func:
-static uint32_t readRaw24(uint8_t startRegister) {
+static bool readRawMeasurements(uint32_t& pressure, uint32_t& temperature) {
+
     Wire.beginTransmission(BMP_ADDRESS);
-    Wire.write(startRegister);
-    Wire.endTransmission(false);
+    Wire.write(0x04);
 
-    Wire.requestFrom(BMP_ADDRESS, 3);
+    if (Wire.endTransmission(false) != 0) {
+        return false;
+    }
 
-    uint8_t xlsb = Wire.read();
-    uint8_t lsb = Wire.read();
-    uint8_t msb = Wire.read();
+    if (Wire.requestFrom(BMP_ADDRESS, 6) != 6) {
+        return false;
+    }
 
-    uint32_t rawvalue =
-        ((uint32_t)msb << 16) |
-        ((uint32_t)lsb << 8) |
-        xlsb;
+    uint8_t p_xlsb = Wire.read();
+    uint8_t p_lsb  = Wire.read();
+    uint8_t p_msb  = Wire.read();
 
-    return rawvalue;
+    uint8_t t_xlsb = Wire.read();
+    uint8_t t_lsb  = Wire.read();
+    uint8_t t_msb  = Wire.read();
+
+    pressure =
+        ((uint32_t)p_msb << 16) |
+        ((uint32_t)p_lsb << 8) |
+        p_xlsb;
+
+    temperature =
+        ((uint32_t)t_msb << 16) |
+        ((uint32_t)t_lsb << 8) |
+        t_xlsb;
+
+    return true;
 }
 
-// Raw values from pres and temp
-uint32_t readPressure() {
-    return readRaw24(0x04);
-}
-
-uint32_t readTemperature() {
-    return readRaw24(0x07);
-}
 
 // Calibration coefficients
 void readCalibration() {
@@ -185,14 +222,14 @@ double compensatePressure(uint32_t rawPressure, double tLin) {
 
     double p = (double)rawPressure;
 
-    // Component A: Temperature-dependent offset
+    // component A: Temperature-dependent offset
     double A =
         calibration.par_p5 +
         calibration.par_p6 * tLin +
         calibration.par_p7 * tLin * tLin +
         calibration.par_p8 * tLin * tLin * tLin;
 
-    // Component B: Linear pressure contribution
+    // component B: Linear pressure contribution
     double B = p * (
         calibration.par_p1 +
         calibration.par_p2 * tLin +
@@ -200,7 +237,7 @@ double compensatePressure(uint32_t rawPressure, double tLin) {
         calibration.par_p4 * tLin * tLin * tLin
     );
 
-    // Component C: Nonlinear pressure contribution
+    // component C: Non-linear pressure contribution
     double C =
         p * p * (calibration.par_p9 + calibration.par_p10 * tLin) +
         p * p * p * calibration.par_p11;
@@ -217,8 +254,12 @@ BMPData readBMPData() {
         return {NAN, NAN};
     }
 
-    uint32_t rawTemp = readTemperature();
-    uint32_t rawPres = readPressure();
+    uint32_t rawTemp;
+    uint32_t rawPres;
+
+    if (!readRawMeasurements(rawPres, rawTemp)) {
+        return {NAN, NAN};
+    }
 
     double temperature = compensateTemperature(rawTemp);
     double pressure = compensatePressure(rawPres, temperature);
